@@ -141,7 +141,7 @@ for message in welcome_messages:
     welcome_container.markdown(f"<h4 style='color: #4CAF50;'>{typed_message}</h4>", unsafe_allow_html=True)
     time.sleep(1.5)  # Wait before displaying the next message
     # Create a new container for the model response display
-    welcome_container.markdown(f"<h5 style='color: #4CAF50;'>Response generated from: {model}</h5>", unsafe_allow_html=True)
+    welcome_container.markdown(f"<h5 style='color: #4CAF50;'>Selected Model: {model}</h5>", unsafe_allow_html=True)
 
 
 
