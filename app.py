@@ -140,8 +140,12 @@ for message in welcome_messages:
     typed_message = ''.join(typing_animation(message))
     welcome_container.markdown(f"<h4 style='color: #4CAF50;'>{typed_message}</h4>", unsafe_allow_html=True)
     time.sleep(1.5)  # Wait before displaying the next message
+    # Create a new container for the model response display
+    model_response_container = st.empty()
+
     # Display which model generated the response
-    welcome_container.markdown(f"<h5 style='color: #4CAF50;'>Response generated from: {model}</h5>", unsafe_allow_html=True)
+    model_response_container.markdown(f"<h5 style='color: #4CAF50;'>Response generated from: {model}</h5>", unsafe_allow_html=True)
+
 
 
 # Create a placeholder for the generated code
