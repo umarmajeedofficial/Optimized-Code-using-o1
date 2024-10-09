@@ -1,10 +1,16 @@
-# main.py
+# app.py
 
 import streamlit as st
 import time
 from models.o1_preview import O1PreviewModel
 from models.o1_mini import O1MiniModel
 from models.llama import LlamaModel
+
+# Initialize the Llama client
+llama_model = LlamaModel(
+    api_key=st.secrets["together"]["api_key"],
+    base_url="https://api.aimlapi.com/v1"
+)
 
 # Initialize the OpenAI clients for both models
 o1_preview_model = O1PreviewModel(
@@ -15,12 +21,6 @@ o1_preview_model = O1PreviewModel(
 o1_mini_model = O1MiniModel(
     api_key=st.secrets["openai_mini"]["api_key"],
     base_url="https://api.aimlapi.com"
-)
-
-# Initialize the Llama client
-llama_model = LlamaModel(
-    api_key=st.secrets["together"]["api_key"],
-    base_url="https://api.aimlapi.com/v1"
 )
 
 # Initialize Streamlit session state for user input and model selection
@@ -85,11 +85,14 @@ language = st.sidebar.selectbox("Select Programming Language:", options=language
 
 # Model selection dropdown with session state handling
 models = ["o1-preview", "o1-mini"]
-st.session_state.selected_model = st.sidebar.selectbox(
+selected_model = st.sidebar.selectbox(
     "Select Model:", 
     options=models, 
     index=models.index(st.session_state.selected_model)
 )
+
+# Update session state based on selection
+st.session_state.selected_model = selected_model
 
 # Select the appropriate model instance based on user selection
 if st.session_state.selected_model == "o1-mini":
@@ -99,9 +102,9 @@ else:
 
 # Main area for the welcome message and generated code
 st.subheader("Welcome to the Code Optimizer")
+welcome_container = st.empty()  # Placeholder for the welcome message
 
 # Display the welcome messages
-welcome_container = st.empty()
 for message in welcome_messages:
     welcome_container.markdown(f"<h4 style='color: #4CAF50;'>{message}</h4>", unsafe_allow_html=True)
     time.sleep(1.5)  # Wait before displaying the next message
