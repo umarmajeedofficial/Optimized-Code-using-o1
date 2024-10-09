@@ -87,6 +87,10 @@ def explain_code(code, model_instance):
     explanation = model_instance.explain_code(instruction)
     return explanation
 
+# Function to display error messages
+def display_error(message):
+    st.error(message)
+
 # List of welcome messages
 welcome_messages = [
     "Welcome, how can I assist you?",
@@ -108,11 +112,14 @@ language = st.sidebar.selectbox("Select Programming Language:", options=language
 
 # Model selection dropdown with session state handling
 models = ["o1-preview", "o1-mini"]
-st.session_state.selected_model = st.sidebar.selectbox(
+selected_model = st.sidebar.selectbox(
     "Select Model:", 
     options=models, 
     index=models.index(st.session_state.selected_model)
 )
+
+# Update session state based on selection
+st.session_state.selected_model = selected_model
 
 # Comparison checkbox
 compare = st.sidebar.checkbox("Compare with another model")
@@ -183,27 +190,64 @@ with st.container():
             code = generate_code(st.session_state.user_question, language, selected_model_instance)
             explanation = explain_code(code, selected_model_instance)  # Get explanation using selected model
             
-            # If comparison is enabled and a model is selected
-            if compare and compare_model_instance:
-                # Generate code and explanation for the comparison model
-                compare_code = generate_code(st.session_state.user_question, language, compare_model_instance)
-                compare_explanation = explain_code(compare_code, compare_model_instance)
-                
-                # Create two columns for side-by-side display
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.subheader(f"Output from {st.session_state.selected_model}")
-                    st.code(code, language=language.lower())
-                    st.text_area("Explanation:", value=explanation, height=200, disabled=True)
-                
-                with col2:
-                    st.subheader(f"Output from {compare_model}")
-                    st.code(compare_code, language=language.lower())
-                    st.text_area("Explanation:", value=compare_explanation, height=200, disabled=True)
+            # Check if an error occurred during code generation
+            if code.startswith("Error"):
+                display_error(code)
             else:
-                # Display the generated code
-                code_container.code(code, language=language.lower())
-                
-                # Set the explanation output in the sidebar
-                st.sidebar.text_area("Code Explanation:", value=explanation, height=200, disabled=True)
+                # If comparison is enabled and a model is selected
+                if compare and compare_model_instance:
+                    # Generate code and explanation for the comparison model
+                    compare_code = generate_code(st.session_state.user_question, language, compare_model_instance)
+                    compare_explanation = explain_code(compare_code, compare_model_instance)
+                    
+                    # Check if an error occurred during comparison model generation
+                    if compare_code.startswith("Error"):
+                        display_error(compare_code)
+                    else:
+                        # Create two columns for side-by-side display
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.subheader(f"Output from {st.session_state.selected_model}")
+                            st.code(code, language=language.lower())
+                            st.text_area("Explanation:", value=explanation, height=200, disabled=True)
+                        
+                        with col2:
+                            st.subheader(f"Output from {compare_model}")
+                            st.code(compare_code, language=language.lower())
+                            st.text_area("Explanation:", value=compare_explanation, height=200, disabled=True)
+                else:
+                    # Display the generated code
+                    code_container.code(code, language=language.lower())
+                    
+                    # Set the explanation output in the sidebar
+                    st.sidebar.text_area("Code Explanation:", value=explanation, height=200, disabled=True)
+
+# Custom CSS to enhance the UI
+st.markdown("""
+<style>
+    .streamlit-expanderHeader {
+        font-size: 18px;
+        font-weight: bold;
+    }
+    .stButton>button {
+        background-color: #4CAF50; /* Green */
+        color: white;
+        border: none;
+        border-radius: 5px;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+    }
+    .stTextInput, .stSelectbox, .stTextArea {
+        width: 100%;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
