@@ -8,6 +8,12 @@ together_client = Together(base_url="https://api.aimlapi.com/v1", api_key=st.sec
 openai_client = OpenAI(api_key=st.secrets["openai"]["api_key"], base_url="https://api.aimlapi.com")
 openai_mini_client = OpenAI(api_key=st.secrets["openai_mini"]["api_key"], base_url="https://api.aimlapi.com")  # Client for o1-mini
 
+# Initialize Streamlit session state for user input and model selection
+if "user_question" not in st.session_state:
+    st.session_state.user_question = ""
+if "selected_model" not in st.session_state:
+    st.session_state.selected_model = "o1-preview"  # Default to o1-preview
+
 def generate_code(user_question, language, model):
     # Step 1: Use Llama model to get the processed question
     response = together_client.chat.completions.create(
@@ -127,9 +133,13 @@ st.sidebar.title("Input Section")
 languages = ["Python", "Java", "C++", "JavaScript", "Go", "Ruby", "Swift"]
 language = st.sidebar.selectbox("Select Programming Language:", options=languages, index=0)
 
-# Model selection dropdown
+# Model selection dropdown with session state handling
 models = ["o1-preview", "o1-mini"]
-model = st.sidebar.selectbox("Select Model:", options=models, index=0)
+st.session_state.selected_model = st.sidebar.selectbox(
+    "Select Model:", 
+    options=models, 
+    index=models.index(st.session_state.selected_model)
+)
 
 # Main area for the welcome message and generated code
 st.subheader("Welcome to the Code Optimizer")
@@ -141,9 +151,7 @@ for message in welcome_messages:
     welcome_container.markdown(f"<h4 style='color: #4CAF50;'>{typed_message}</h4>", unsafe_allow_html=True)
     time.sleep(1.5)  # Wait before displaying the next message
     # Create a new container for the model response display
-    welcome_container.markdown(f"<h5 style='color: #4CAF50;'>Selected Model: {model}</h5>", unsafe_allow_html=True)
-
-
+    welcome_container.markdown(f"<h5 style='color: #4CAF50;'>Selected Model: {st.session_state.selected_model}</h5>", unsafe_allow_html=True)
 
 # Create a placeholder for the generated code
 code_container = st.empty()
@@ -155,9 +163,10 @@ with st.container():
     
     # Submit button at the bottom of the main content
     if st.button("Submit"):
+        st.session_state.user_question = user_question  # Store the question in session state
         with st.spinner("Thinking..."):
-            code = generate_code(user_question, language, model)
-            explanation = explain_code(code, model)  # Get explanation using selected model
+            code = generate_code(st.session_state.user_question, language, st.session_state.selected_model)
+            explanation = explain_code(code, st.session_state.selected_model)  # Get explanation using selected model
             
             # Display the generated code
             code_container.code(code, language=language.lower())
