@@ -97,7 +97,7 @@ languages = ["Python", "Java", "C++", "JavaScript", "Go", "Ruby", "Swift"]
 language = st.sidebar.selectbox("Select Programming Language:", options=languages, index=0)
 
 # Main area for the welcome message and generated code
-st.subheader("Welcome Message:")
+st.subheader("Welcome to the Code Optimizer")
 welcome_container = st.empty()  # Placeholder for the welcome message
 
 # Cycle through the welcome messages with typing animation
