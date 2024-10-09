@@ -84,6 +84,11 @@ welcome_messages = [
     "Feel free to ask any coding questions!",
     "I'm here to help with your programming needs.",
     "How may I support you today?",
+    "Welcome, how can I assist you?",
+    "What can I help with?",
+    "Feel free to ask any coding questions!",
+    "I'm here to help with your programming needs.",
+    "How may I support you today?",
 ]
 
 # Streamlit app setup
