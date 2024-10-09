@@ -31,4 +31,3 @@ class O1MiniModel:
             max_tokens=10000,
         )
         return response.choices[0].message.content.strip()
-
