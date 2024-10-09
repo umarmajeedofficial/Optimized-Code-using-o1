@@ -1,15 +1,15 @@
 # models/deepseek_coder_33b.py
 
-from openai import OpenAI
 import openai
 
 class DeepseekCoder33BModel:
     def __init__(self, api_key, base_url="https://api.aimlapi.com"):
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        openai.api_key = api_key
+        openai.api_base = base_url
 
     def generate_code(self, instruction):
         try:
-            response = self.client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="deepseek-ai/deepseek-coder-33b-instruct",
                 messages=[
                     {
@@ -21,7 +21,7 @@ class DeepseekCoder33BModel:
                         "content": instruction
                     },
                 ],
-                max_tokens=2000,  # Reduced for testing
+                max_tokens=2000,  # Adjust based on provider limits
             )
             return response.choices[0].message.content.strip()
         except openai.error.OpenAIError as e:
@@ -30,7 +30,7 @@ class DeepseekCoder33BModel:
 
     def explain_code(self, instruction):
         try:
-            response = self.client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="deepseek-ai/deepseek-coder-33b-instruct",
                 messages=[
                     {
@@ -42,7 +42,7 @@ class DeepseekCoder33BModel:
                         "content": instruction
                     },
                 ],
-                max_tokens=2000,  # Reduced for testing
+                max_tokens=2000,  # Adjust based on provider limits
             )
             return response.choices[0].message.content.strip()
         except openai.error.OpenAIError as e:
