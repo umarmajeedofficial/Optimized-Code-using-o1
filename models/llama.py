@@ -3,7 +3,7 @@
 from together import Together
 
 class LlamaModel:
-    def __init__(self, api_key, base_url="https://api.aimlapi.com"):
+    def __init__(self, api_key, base_url="https://api.aimlapi.com/v1"):
         self.client = Together(base_url=base_url, api_key=api_key)
 
     def process_question(self, user_question):
@@ -23,9 +23,6 @@ class LlamaModel:
             max_tokens=10000,
         )
         
-        # Extract the processed response and clean up formatting
         llama_response = response.choices[0].message.content.strip()
         processed_string = llama_response.replace('"', '').replace("'", '').replace('\n', ' ')
-        
         return processed_string
-
