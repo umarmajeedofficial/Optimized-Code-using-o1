@@ -6,8 +6,9 @@ from openai import OpenAI
 # Initialize the clients for the models with API keys from Streamlit secrets
 together_client = Together(base_url="https://api.aimlapi.com/v1", api_key=st.secrets["together"]["api_key"])
 openai_client = OpenAI(api_key=st.secrets["openai"]["api_key"], base_url="https://api.aimlapi.com")
+openai_mini_client = OpenAI(api_key=st.secrets["openai_mini"]["api_key"], base_url="https://api.aimlapi.com")  # Client for o1-mini
 
-def generate_code(user_question, language):
+def generate_code(user_question, language, model):
     # Step 1: Use Llama model to get the processed question
     response = together_client.chat.completions.create(
         model="meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo",
@@ -30,43 +31,68 @@ def generate_code(user_question, language):
     # Remove quotes and make it a single string
     processed_string = llama_response.replace('"', '').replace("'", '').replace('\n', ' ')
 
-    # Step 2: Use OpenAI o1 model to generate optimized code
+    # Step 2: Use selected OpenAI model to generate optimized code
     instruction = (
         f"As a highly skilled software engineer, please analyze the following question thoroughly and provide optimized "
         f"{language} code for the problem: {processed_string}. Make sure to give only code."
     )
     
-    openai_response = openai_client.chat.completions.create(
-        model="o1-preview",
-        messages=[
-            {
-                "role": "user",
-                "content": instruction
-            },
-        ],
-        max_tokens=10000,
-    )
+    # Use the selected model
+    if model == "o1-mini":
+        openai_response = openai_mini_client.chat.completions.create(
+            model="o1-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": instruction
+                },
+            ],
+            max_tokens=10000,
+        )
+    else:
+        openai_response = openai_client.chat.completions.create(
+            model="o1-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": instruction
+                },
+            ],
+            max_tokens=10000,
+        )
 
     code = openai_response.choices[0].message.content.strip()
     return code
 
-def explain_code(code):
-    # Step 1: Use OpenAI o1 model to explain the generated code line by line
+def explain_code(code, model):
+    # Step 1: Use OpenAI model to explain the generated code line by line
     instruction = (
         f"As a highly skilled software engineer, please provide a detailed line-by-line explanation of the following code:\n\n"
         f"{code}\n\nMake sure to explain what each line does and why it is used."
     )
     
-    openai_response = openai_client.chat.completions.create(
-        model="o1-preview",
-        messages=[
-            {
-                "role": "user",
-                "content": instruction
-            }
-        ],
-        max_tokens=10000,
-    )
+    if model == "o1-mini":
+        openai_response = openai_mini_client.chat.completions.create(
+            model="o1-mini",
+            messages=[
+                {
+                    "role": "user",
+                    "content": instruction
+                }
+            ],
+            max_tokens=10000,
+        )
+    else:
+        openai_response = openai_client.chat.completions.create(
+            model="o1-preview",
+            messages=[
+                {
+                    "role": "user",
+                    "content": instruction
+                }
+            ],
+            max_tokens=10000,
+        )
 
     explanation = openai_response.choices[0].message.content.strip()
     return explanation
@@ -101,6 +127,10 @@ st.sidebar.title("Input Section")
 languages = ["Python", "Java", "C++", "JavaScript", "Go", "Ruby", "Swift"]
 language = st.sidebar.selectbox("Select Programming Language:", options=languages, index=0)
 
+# Model selection dropdown
+models = ["o1-preview", "o1-mini"]
+model = st.sidebar.selectbox("Select Model:", options=models, index=0)
+
 # Main area for the welcome message and generated code
 st.subheader("Welcome to the Code Optimizer")
 welcome_container = st.empty()  # Placeholder for the welcome message
@@ -122,8 +152,8 @@ with st.container():
     # Submit button at the bottom of the main content
     if st.button("Submit"):
         with st.spinner("Thinking..."):
-            code = generate_code(user_question, language)
-            explanation = explain_code(code)  # Get explanation using O1 model
+            code = generate_code(user_question, language, model)
+            explanation = explain_code(code, model)  # Get explanation using selected model
             
             # Display the generated code
             code_container.code(code, language=language.lower())
