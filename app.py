@@ -118,14 +118,15 @@ compare_mode = st.sidebar.checkbox("Compare with Other Models", key="compare_mod
 # If compare_mode is enabled, show additional model selection
 if compare_mode:
     comparison_models = ["deepseek-coder-instruct", "code-llama"]
-    selected_compare_models = st.sidebar.multiselect(
-        "Select Models to Compare:", 
+    selected_compare_model = st.sidebar.selectbox(
+        "Select Model to Compare:", 
         options=comparison_models,
-        default=comparison_models  # By default, select all comparison models
+        index=0  # Default to the first model in the list
     )
-    st.session_state.selected_compare_models = selected_compare_models
+    st.session_state.selected_compare_models = [selected_compare_model]  # Store the selected model as a list
 else:
     st.session_state.selected_compare_models = []
+
 
 # Function to get model instances based on selection
 def get_model_instance(model_name):
