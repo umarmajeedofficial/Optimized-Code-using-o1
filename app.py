@@ -1,3 +1,16 @@
+import streamlit as st
+import time
+
+try:
+    from models.o1_preview import O1PreviewModel
+    from models.o1_mini import O1MiniModel
+    from models.llama import LlamaModel
+    from models.deepseek_coder_instruct import DeepseekCoderInstructModel
+    from models.code_llama import CodeLlamaModel
+except ImportError as e:
+    st.error(f"Error importing models: {e}")
+    st.stop()
+
 # Initialize the Llama client
 llama_model = LlamaModel(
     api_key=st.secrets["together"]["api_key"],
