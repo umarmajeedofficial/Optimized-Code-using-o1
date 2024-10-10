@@ -1,8 +1,6 @@
 import streamlit as st  # Import Streamlit library
 import time  # Import time for delays in animations
 
-
-
 try:
     from models.o1_preview import O1PreviewModel
     from models.o1_mini import O1MiniModel
@@ -11,7 +9,8 @@ try:
     from models.gpt4o_model import GPT4oModel  # Updated import
     from models.mistral_model import MistralModel
     from models.llama_3_2_model import Llama32Model
-    
+    from models.o1_analyzer import O1Analyzer  # Import the analyzer
+
 except ImportError as e:
     st.error(f"Error importing models: {e}")
     st.stop()
@@ -54,6 +53,11 @@ llama_3_2_model = Llama32Model(
     base_url="https://api.aimlapi.com/v1"
 )
 
+# Initialize the O1Analyzer
+o1_analyzer = O1Analyzer(
+    api_key=st.secrets["openai"]["api_key"],  # Assuming o1_preview uses the openai API key
+    base_url="https://api.aimlapi.com"
+)
 
 # Initialize Streamlit session state for user input and model selection
 if "user_question" not in st.session_state:
@@ -143,7 +147,6 @@ if compare_mode:
 else:
     st.session_state.selected_compare_models = []
 
-
 # Function to get model instances based on selection
 def get_model_instance(model_name):
     if model_name == "o1-preview":
@@ -226,6 +229,19 @@ with st.container():
                             "explanation": f"Error: {e}"
                         }
             
+            # Analyze Complexities
+            with st.spinner("Analyzing Complexities..."):
+                # Prepare the code snippets for analysis
+                code_snippets = {}
+                for model_key, model_info in results.items():
+                    code_snippets[model_key] = model_info.get("code", "")
+
+                # Analyze complexities
+                analysis_results = o1_analyzer.analyze_complexity(code_snippets)
+
+                # Generate complexity graph
+                complexity_graph = o1_analyzer.generate_complexity_graph(analysis_results)
+            
             # Display Results
             if compare_mode and st.session_state.selected_compare_models:
                 # Include Base Model in the results for display
@@ -246,32 +262,47 @@ with st.container():
                     st.code(model_info.get("code", "No code generated."), language=language.lower())
                     st.markdown("**Explanation:**")
                     st.text_area("", value=model_info.get("explanation", "No explanation provided."), height=200, disabled=True)
+    
+    # Custom CSS to enhance the UI
+    st.markdown("""
+    <style>
+        .streamlit-expanderHeader {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .stButton>button {
+            background-color: #4CAF50; /* Green */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        .stTextInput, .stSelectbox, .stTextArea {
+            width: 100%;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Custom CSS to enhance the UI
-st.markdown("""
-<style>
-    .streamlit-expanderHeader {
-        font-size: 18px;
-        font-weight: bold;
-    }
-    .stButton>button {
-        background-color: #4CAF50; /* Green */
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 10px 20px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 16px;
-        margin: 4px 2px;
-        cursor: pointer;
-    }
-    .stTextInput, .stSelectbox, .stTextArea {
-        width: 100%;
-        border-radius: 5px;
-        padding: 10px;
-        margin-bottom: 10px;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Display complexity analysis in the sidebar
+if st.session_state.user_question:
+    st.sidebar.markdown("## Complexity Analysis")
+
+    for model_key, complexities in analysis_results.items():
+        st.sidebar.markdown(f"**{model_key}**")
+        if complexities["error"]:
+            st.sidebar.error(f"Error: {complexities['error']}")
+        else:
+            st.sidebar.markdown(f"- **Time Complexity:** {complexities['time_complexity']}")
+            st.sidebar.markdown(f"- **Space Complexity:** {complexities['space_complexity']}")
+
+    # Display the complexity graph
+    st.sidebar.plotly_chart(complexity_graph, use_container_width=True)
