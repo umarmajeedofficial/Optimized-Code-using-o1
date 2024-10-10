@@ -1,15 +1,18 @@
-import streamlit as st
-import time
-
 try:
     from models.o1_preview import O1PreviewModel
     from models.o1_mini import O1MiniModel
     from models.llama import LlamaModel
     from models.deepseek_coder_instruct import DeepseekCoderInstructModel
-    from models.code_llama import CodeLlamaModel
+    from models.gpt4o_model import GPT4oModel  # Updated import
 except ImportError as e:
     st.error(f"Error importing models: {e}")
     st.stop()
+
+# Initialize the GPT-4o model
+gpt4o_model = GPT4oModel(
+    api_key=st.secrets["gpt4o"]["api_key"], 
+    base_url="https://api.aimlapi.com"
+)
 
 # Initialize the Llama client
 llama_model = LlamaModel(
@@ -34,10 +37,7 @@ deepseek_model = DeepseekCoderInstructModel(
     base_url="https://api.aimlapi.com"
 )
 
-code_llama_model = CodeLlamaModel(
-    api_key=st.secrets["code_llama"]["api_key"],
-    base_url="https://api.aimlapi.com"
-)
+
 
 # Initialize Streamlit session state for user input and model selection
 if "user_question" not in st.session_state:
@@ -117,7 +117,7 @@ compare_mode = st.sidebar.checkbox("Compare with Other Models", key="compare_mod
 
 # If compare_mode is enabled, show additional model selection
 if compare_mode:
-    comparison_models = ["deepseek-coder-instruct", "code-llama"]
+    comparison_models = ["deepseek-coder-instruct", "gpt4o"]
     selected_compare_model = st.sidebar.selectbox(
         "Select Model to Compare:", 
         options=comparison_models,
@@ -136,8 +136,8 @@ def get_model_instance(model_name):
         return o1_mini_model
     elif model_name == "deepseek-coder-instruct":
         return deepseek_model
-    elif model_name == "code-llama":
-        return code_llama_model
+    elif model_name == "gpt4o":
+        return gpt4o_model
     else:
         return o1_preview_model  # Default fallback
 
