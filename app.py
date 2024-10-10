@@ -1,164 +1,95 @@
-# app.py
-
 import streamlit as st
-import time
-from models import (
-    O1PreviewModel,
-    O1MiniModel,
-    LlamaModel,
-    CodeLlama70BModel,
-    DeepseekCoder33BModel,
-    WizardCoderPython34BModel,
-    PhindCodeLlamaV2Model,
-    SQLCoder15BModel
-)
+from together import Together
+from openai import OpenAI
 
-# Initialize the Llama client
-llama_model = LlamaModel(
-    api_key=st.secrets["together"]["api_key"],
-    base_url="https://api.aimlapi.com/v1"
-)
+# Initialize the clients for the models with API keys from Streamlit secrets
+together_client = Together(base_url="https://api.aimlapi.com/v1", api_key=st.secrets["together"]["api_key"])
+openai_client = OpenAI(api_key=st.secrets["openai"]["api_key"], base_url="https://api.aimlapi.com")
 
-# Initialize the OpenAI clients for both main models
-o1_preview_model = O1PreviewModel(
-    api_key=st.secrets["openai"]["api_key"],
-    base_url="https://api.aimlapi.com"
-)
+def generate_code(user_question, language):
+    # Step 1: Use Llama model to get the processed question
+    response = together_client.chat.completions.create(
+        model="meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": user_question,
+                    }
+                ],
+            }
+        ],
+        max_tokens=10000,
+    )
+    
+    llama_response = response.choices[0].message.content.strip()
+    
+    # Remove quotes and make it a single string
+    processed_string = llama_response.replace('"', '').replace("'", '').replace('\n', ' ')
 
-o1_mini_model = O1MiniModel(
-    api_key=st.secrets["openai_mini"]["api_key"],
-    base_url="https://api.aimlapi.com"
-)
-
-# Initialize the comparison models
-codellama_70b_model = CodeLlama70BModel(
-    api_key=st.secrets["codellama_70b"]["api_key"],
-    base_url="https://api.aimlapi.com"
-)
-
-deepseek_coder_33b_model = DeepseekCoder33BModel(
-    api_key=st.secrets["deepseek_coder_33b"]["api_key"],
-    base_url="https://api.aimlapi.com"
-)
-
-wizardcoder_python_34b_model = WizardCoderPython34BModel(
-    api_key=st.secrets["wizardcoder_python_34b"]["api_key"],
-    base_url="https://api.aimlapi.com"
-)
-
-phind_codellama_v2_model = PhindCodeLlamaV2Model(
-    api_key=st.secrets["phind_codellama_v2"]["api_key"],
-    base_url="https://api.aimlapi.com"
-)
-
-sqlcoder_15b_model = SQLCoder15BModel(
-    api_key=st.secrets["sqlcoder_15b"]["api_key"],
-    base_url="https://api.aimlapi.com"
-)
-
-# Initialize Streamlit session state for user input and model selection
-if "user_question" not in st.session_state:
-    st.session_state.user_question = ""
-if "selected_model" not in st.session_state:
-    st.session_state.selected_model = "o1-preview"  # Default to o1-preview
-
-def generate_code(user_question, language, model_instance):
-    # Step 1: Use the Llama model to process the user's question
-    processed_string = llama_model.process_question(user_question)
-
-    # Step 2: Use the selected OpenAI model to generate optimized code
+    # Step 2: Use OpenAI o1 model to generate optimized code
     instruction = (
         f"As a highly skilled software engineer, please analyze the following question thoroughly and provide optimized "
         f"{language} code for the problem: {processed_string}. Make sure to give only code."
     )
     
-    # Generate code using the selected model instance
-    code = model_instance.generate_code(instruction)
+    openai_response = openai_client.chat.completions.create(
+        model="o1-preview",
+        messages=[
+            {
+                "role": "user",
+                "content": instruction
+            },
+        ],
+        max_tokens=10000,
+    )
+
+    code = openai_response.choices[0].message.content.strip()
     return code
 
-def explain_code(code, model_instance):
-    # Step 1: Use OpenAI model to explain the generated code line by line
+def explain_code(code):
+    # Step 1: Use OpenAI o1 model to explain the generated code line by line
     instruction = (
         f"As a highly skilled software engineer, please provide a detailed line-by-line explanation of the following code:\n\n"
         f"{code}\n\nMake sure to explain what each line does and why it is used."
     )
     
-    # Explain code using the selected model instance
-    explanation = model_instance.explain_code(instruction)
+    openai_response = openai_client.chat.completions.create(
+        model="o1-preview",
+        messages=[
+            {
+                "role": "user",
+                "content": instruction
+            }
+        ],
+        max_tokens=10000,
+    )
+
+    explanation = openai_response.choices[0].message.content.strip()
     return explanation
 
-# Function to display error messages
-def display_error(message):
-    st.error(message)
+# Dropdown menu for programming languages
+languages = ["Python", "Java", "C++", "JavaScript", "Go", "Ruby", "Swift"]
 
-# List of welcome messages
-welcome_messages = [
-    "Welcome, how can I assist you?",
-    "What can I help with?",
-    "Feel free to ask any coding questions!",
-    "I'm here to help with your programming needs.",
-    "How may I support you today?",
-]
-
-# Streamlit app setup
+# Create the Streamlit interface
 st.set_page_config(page_title="Optimized Code Generator", layout="wide")
 
 # Create a sidebar layout for inputs
 st.sidebar.title("Input Section")
 
 # Sidebar inputs
-languages = ["Python", "Java", "C++", "JavaScript", "Go", "Ruby", "Swift"]
 language = st.sidebar.selectbox("Select Programming Language:", options=languages, index=0)
+#explanation_output = st.sidebar.text_area("Code Explanation:", height=200, value="", placeholder="Code explanation will appear here...", disabled=True)
 
-# Model selection dropdown with session state handling
-models = ["o1-preview", "o1-mini"]
-selected_model = st.sidebar.selectbox(
-    "Select Model:", 
-    options=models, 
-    index=models.index(st.session_state.selected_model)
-)
+# Main area for generated code and question input
+st.subheader("Generated Code:")
+code_container = st.empty()  # Placeholder for generated code
 
-# Update session state based on selection
-st.session_state.selected_model = selected_model
+# Use a container to allow scrolling
 
-# Comparison checkbox
-compare = st.sidebar.checkbox("Compare with another model")
 
-# Comparison model selection
-if compare:
-    compare_models = [
-        "Code Llama (70B)",
-        "Deepseek Coder Instruct (33B)",
-        "WizardCoder Python v1.0 (34B)",
-        "Phind Code LLaMA v2 (34B)",
-        "SQLCoder (15B)"
-    ]
-    compare_model = st.sidebar.selectbox("Compare with", options=["-- Select a model --"] + compare_models, index=0)
-else:
-    compare_model = None
-
-# Select the appropriate model instance based on user selection
-if st.session_state.selected_model == "o1-mini":
-    selected_model_instance = o1_mini_model
-else:
-    selected_model_instance = o1_preview_model
-
-# Select the appropriate comparison model instance
-if compare and compare_model and compare_model != "-- Select a model --":
-    if compare_model == "Code Llama (70B)":
-        compare_model_instance = codellama_70b_model
-    elif compare_model == "Deepseek Coder Instruct (33B)":
-        compare_model_instance = deepseek_coder_33b_model
-    elif compare_model == "WizardCoder Python v1.0 (34B)":
-        compare_model_instance = wizardcoder_python_34b_model
-    elif compare_model == "Phind Code LLaMA v2 (34B)":
-        compare_model_instance = phind_codellama_v2_model
-    elif compare_model == "SQLCoder (15B)":
-        compare_model_instance = sqlcoder_15b_model
-    else:
-        compare_model_instance = None
-else:
-    compare_model_instance = None
 
 # Main area for the welcome message and generated code
 st.subheader("Welcome to the Code Optimizer")
@@ -177,51 +108,24 @@ model_response_container.markdown(f"<h5 style='color: #4CAF50;'>Selected Model: 
 code_container = st.empty()
 compare_code_container = st.empty()
 
-# Use a container to allow scrolling
+
+
+
 with st.container():
     # Create a placeholder for the input field at the bottom
     user_question = st.text_area("Enter your question:", placeholder="Type your question here...", height=150)
     
     # Submit button at the bottom of the main content
     if st.button("Submit"):
-        st.session_state.user_question = user_question  # Store the question in session state
         with st.spinner("Thinking..."):
-            # Generate code and explanation for the main model
-            code = generate_code(st.session_state.user_question, language, selected_model_instance)
-            explanation = explain_code(code, selected_model_instance)  # Get explanation using selected model
+            code = generate_code(user_question, language)
+            explanation = explain_code(code)  # Get explanation using O1 model
             
-            # Check if an error occurred during code generation
-            if code.startswith("Error"):
-                display_error(code)
-            else:
-                # If comparison is enabled and a model is selected
-                if compare and compare_model_instance:
-                    # Generate code and explanation for the comparison model
-                    compare_code = generate_code(st.session_state.user_question, language, compare_model_instance)
-                    compare_explanation = explain_code(compare_code, compare_model_instance)
-                    
-                    # Check if an error occurred during comparison model generation
-                    if compare_code.startswith("Error"):
-                        display_error(compare_code)
-                    else:
-                        # Create two columns for side-by-side display
-                        col1, col2 = st.columns(2)
-                        
-                        with col1:
-                            st.subheader(f"Output from {st.session_state.selected_model}")
-                            st.code(code, language=language.lower())
-                            st.text_area("Explanation:", value=explanation, height=200, disabled=True)
-                        
-                        with col2:
-                            st.subheader(f"Output from {compare_model}")
-                            st.code(compare_code, language=language.lower())
-                            st.text_area("Explanation:", value=compare_explanation, height=200, disabled=True)
-                else:
-                    # Display the generated code
-                    code_container.code(code, language=language.lower())
-                    
-                    # Set the explanation output in the sidebar
-                    st.sidebar.text_area("Code Explanation:", value=explanation, height=200, disabled=True)
+            # Display the generated code
+            code_container.code(code, language=language.lower())
+            
+            # Set the explanation output in the sidebar
+            st.sidebar.text_area("Code Explanation:", value=explanation, height=200, disabled=True)
 
 # Custom CSS to enhance the UI
 st.markdown("""
