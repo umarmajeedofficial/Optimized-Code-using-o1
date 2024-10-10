@@ -50,7 +50,7 @@ mistral_model = MistralModel(
 )
 
 llama_3_2_model = Llama32Model(
-    api_key=st.secrets["llama3.2"]["api_key"],
+    api_key=st.secrets["mistral"]["api_key"],
     base_url="https://api.aimlapi.com/v1"
 )
 
