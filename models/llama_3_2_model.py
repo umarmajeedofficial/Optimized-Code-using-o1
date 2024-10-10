@@ -19,7 +19,7 @@ class Llama32Model:
                     "content": instruction
                 },
             ],
-            max_tokens=10000,
+            max_tokens=1000,
         )
         return response.choices[0].message.content.strip()
 
@@ -36,6 +36,6 @@ class Llama32Model:
                     "content": instruction
                 }
             ],
-            max_tokens=10000,
+            max_tokens=1000,
         )
         return response.choices[0].message.content.strip()
