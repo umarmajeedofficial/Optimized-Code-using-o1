@@ -20,7 +20,7 @@ class LlamaModel:
                     ],
                 }
             ],
-            max_tokens=512,
+            max_tokens=10000,
         )
         
         llama_response = response.choices[0].message.content.strip()
