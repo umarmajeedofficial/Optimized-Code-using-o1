@@ -15,7 +15,7 @@ class O1MiniModel:
                     "content": instruction
                 },
             ],
-            max_tokens=10000,
+            max_tokens=512,
         )
         return response.choices[0].message.content.strip()
 
@@ -28,6 +28,6 @@ class O1MiniModel:
                     "content": instruction
                 }
             ],
-            max_tokens=10000,
+            max_tokens=512,
         )
         return response.choices[0].message.content.strip()
