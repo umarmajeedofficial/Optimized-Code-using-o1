@@ -127,7 +127,7 @@ compare_mode = st.sidebar.checkbox("Compare with Other Models", key="compare_mod
 
 # If compare_mode is enabled, show additional model selection
 if compare_mode:
-    comparison_models = ["deepseek-coder-instruct", "gpt4o", "mistral"]  
+    comparison_models = ["GeminiModel", "gpt4o", "mistral"]  
     selected_compare_model = st.sidebar.selectbox(
         "Select Model to Compare:", 
         options=comparison_models,
