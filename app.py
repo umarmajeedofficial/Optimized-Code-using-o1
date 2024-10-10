@@ -1,25 +1,10 @@
-# app.py
-
-import streamlit as st
-import time
-
-try:
-    from models.o1_preview import O1PreviewModel
-    from models.o1_mini import O1MiniModel
-    from models.llama import LlamaModel
-    from models.deepseek_coder_instruct import DeepseekCoderInstructModel
-    from models.code_llama import CodeLlamaModel
-except ImportError as e:
-    st.error(f"Error importing models: {e}")
-    st.stop()
-
 # Initialize the Llama client
 llama_model = LlamaModel(
     api_key=st.secrets["together"]["api_key"],
     base_url="https://api.aimlapi.com/v1"
 )
 
-# Initialize the OpenAI clients for both models
+# Initialize the OpenAI clients for base models
 o1_preview_model = O1PreviewModel(
     api_key=st.secrets["openai"]["api_key"],
     base_url="https://api.aimlapi.com"
@@ -30,13 +15,12 @@ o1_mini_model = O1MiniModel(
     base_url="https://api.aimlapi.com"
 )
 
-# Initialize the Deepseek Coder Instruct client
+# Initialize the comparison models
 deepseek_model = DeepseekCoderInstructModel(
     api_key=st.secrets["deepseek"]["api_key"],
     base_url="https://api.aimlapi.com"
 )
 
-# Initialize the Code Llama client
 code_llama_model = CodeLlamaModel(
     api_key=st.secrets["code_llama"]["api_key"],
     base_url="https://api.aimlapi.com"
@@ -45,10 +29,12 @@ code_llama_model = CodeLlamaModel(
 # Initialize Streamlit session state for user input and model selection
 if "user_question" not in st.session_state:
     st.session_state.user_question = ""
-if "selected_model" not in st.session_state:
-    st.session_state.selected_model = "o1-preview"  # Default to o1-preview
+if "selected_base_model" not in st.session_state:
+    st.session_state.selected_base_model = "o1-preview"  # Default to o1-preview
 if "compare_mode" not in st.session_state:
     st.session_state.compare_mode = False
+if "selected_compare_models" not in st.session_state:
+    st.session_state.selected_compare_models = []
 
 def generate_code(user_question, language, model_instance):
     # Step 1: Use the Llama model to process the user's question
@@ -104,21 +90,29 @@ st.sidebar.title("Input Section")
 languages = ["Python", "Java", "C++", "JavaScript", "Go", "Ruby", "Swift"]
 language = st.sidebar.selectbox("Select Programming Language:", options=languages, index=0)
 
-# Comparison mode checkbox
-st.sidebar.checkbox("Compare with Other Models", key="compare_mode")
+# Base Model Selection
+base_models = ["o1-preview", "o1-mini"]
+selected_base_model = st.sidebar.selectbox(
+    "Select Base Model:", 
+    options=base_models, 
+    index=base_models.index(st.session_state.selected_base_model)
+)
+st.session_state.selected_base_model = selected_base_model
 
-# Model selection dropdown
-if not st.session_state.compare_mode:
-    models = ["o1-preview", "o1-mini"]
-    selected_model = st.sidebar.selectbox(
-        "Select Model:", 
-        options=models, 
-        index=models.index(st.session_state.get("selected_model", "o1-preview"))
+# Comparison mode checkbox
+compare_mode = st.sidebar.checkbox("Compare with Other Models", key="compare_mode")
+
+# If compare_mode is enabled, show additional model selection
+if compare_mode:
+    comparison_models = ["deepseek-coder-instruct", "code-llama"]
+    selected_compare_models = st.sidebar.multiselect(
+        "Select Models to Compare:", 
+        options=comparison_models,
+        default=comparison_models  # By default, select all comparison models
     )
-    st.session_state.selected_model = selected_model
+    st.session_state.selected_compare_models = selected_compare_models
 else:
-    # In comparison mode, list all available models
-    models = ["o1-preview", "o1-mini", "deepseek-coder-instruct", "code-llama"]
+    st.session_state.selected_compare_models = []
 
 # Function to get model instances based on selection
 def get_model_instance(model_name):
@@ -142,10 +136,12 @@ for message in welcome_messages:
     welcome_container.markdown(f"<h4 style='color: #4CAF50;'>{message}</h4>", unsafe_allow_html=True)
     time.sleep(1.5)  # Wait before displaying the next message
 
-# Display selected model separately
-if not st.session_state.compare_mode:
-    model_response_container = st.empty()
-    model_response_container.markdown(f"<h5 style='color: #4CAF50;'>Selected Model: {st.session_state.selected_model}</h5>", unsafe_allow_html=True)
+# Display selected models information
+if compare_mode:
+    st.markdown(f"<h5 style='color: #4CAF50;'>Base Model: {st.session_state.selected_base_model}</h5>", unsafe_allow_html=True)
+    st.markdown(f"<h5 style='color: #4CAF50;'>Comparison Models: {', '.join(st.session_state.selected_compare_models) if st.session_state.selected_compare_models else 'None'}</h5>", unsafe_allow_html=True)
+else:
+    st.markdown(f"<h5 style='color: #4CAF50;'>Selected Model: {st.session_state.selected_base_model}</h5>", unsafe_allow_html=True)
 
 # Create a placeholder for the generated code
 code_container = st.empty()
@@ -159,40 +155,63 @@ with st.container():
     if st.button("Submit"):
         st.session_state.user_question = user_question  # Store the question in session state
         with st.spinner("Thinking..."):
-            if st.session_state.compare_mode:
-                # In comparison mode, generate and explain code for all selected models
-                results = {}
-                for model_name in models:
+            results = {}
+            # Process Base Model
+            base_model_instance = get_model_instance(st.session_state.selected_base_model)
+            try:
+                base_code = generate_code(st.session_state.user_question, language, base_model_instance)
+                base_explanation = explain_code(base_code, base_model_instance)
+                results["Base Model"] = {
+                    "model_name": st.session_state.selected_base_model,
+                    "code": base_code,
+                    "explanation": base_explanation
+                }
+            except Exception as e:
+                results["Base Model"] = {
+                    "model_name": st.session_state.selected_base_model,
+                    "code": "Error generating code.",
+                    "explanation": f"Error: {e}"
+                }
+            
+            # Process Comparison Models if enabled
+            if compare_mode and st.session_state.selected_compare_models:
+                for model_name in st.session_state.selected_compare_models:
                     model_instance = get_model_instance(model_name)
-                    code = generate_code(st.session_state.user_question, language, model_instance)
-                    explanation = explain_code(code, model_instance)
-                    results[model_name] = {
-                        "code": code,
-                        "explanation": explanation
-                    }
-                
-                # Determine the number of columns based on the number of models
-                num_models = len(models)
-                cols = st.columns(num_models)
-                
-                for idx, model_name in enumerate(models):
-                    with cols[idx]:
-                        st.subheader(f"**{model_name}**")
-                        st.markdown("**Code:**")
-                        st.code(results[model_name]["code"], language=language.lower())
-                        st.markdown("**Explanation:**")
-                        st.text_area("", value=results[model_name]["explanation"], height=200, disabled=True)
+                    try:
+                        code = generate_code(st.session_state.user_question, language, model_instance)
+                        explanation = explain_code(code, model_instance)
+                        results[model_name] = {
+                            "model_name": model_name,
+                            "code": code,
+                            "explanation": explanation
+                        }
+                    except Exception as e:
+                        results[model_name] = {
+                            "model_name": model_name,
+                            "code": "Error generating code.",
+                            "explanation": f"Error: {e}"
+                        }
+            
+            # Display Results
+            if compare_mode and st.session_state.selected_compare_models:
+                # Include Base Model in the results for display
+                display_models = ["Base Model"] + st.session_state.selected_compare_models
             else:
-                # Single model mode
-                model_instance = get_model_instance(st.session_state.selected_model)
-                code = generate_code(st.session_state.user_question, language, model_instance)
-                explanation = explain_code(code, model_instance)  # Get explanation using selected model
-                
-                # Display the generated code
-                code_container.code(code, language=language.lower())
-                
-                # Set the explanation output in the sidebar
-                st.sidebar.text_area("Code Explanation:", value=explanation, height=200, disabled=True)
+                display_models = ["Base Model"]
+            
+            # Determine the number of columns based on the number of models to display
+            num_models = len(display_models)
+            cols = st.columns(num_models)
+            
+            for idx, model_key in enumerate(display_models):
+                with cols[idx]:
+                    model_info = results.get(model_key, {})
+                    model_display_name = model_info.get("model_name", model_key)
+                    st.subheader(f"**{model_display_name}**")
+                    st.markdown("**Code:**")
+                    st.code(model_info.get("code", "No code generated."), language=language.lower())
+                    st.markdown("**Explanation:**")
+                    st.text_area("", value=model_info.get("explanation", "No explanation provided."), height=200, disabled=True)
 
 # Custom CSS to enhance the UI
 st.markdown("""
