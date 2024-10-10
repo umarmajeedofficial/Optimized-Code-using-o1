@@ -12,7 +12,7 @@ class GPT4oModel:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an AI assistant who knows everything."
+                    "content": "As a highly skilled software engineer, please analyze the following question thoroughly and provide optimized code for the problem & Make sure to give only code"
                 },
                 {
                     "role": "user",
