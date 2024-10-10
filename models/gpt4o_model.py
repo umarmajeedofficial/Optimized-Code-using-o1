@@ -19,7 +19,7 @@ class GPT4oModel:
                     "content": instruction
                 },
             ],
-            max_tokens=1048,
+            max_tokens=512,
         )
         return response.choices[0].message.content.strip()
 
@@ -36,6 +36,6 @@ class GPT4oModel:
                     "content": instruction
                 }
             ],
-            max_tokens=1048,
+            max_tokens=512,
         )
         return response.choices[0].message.content.strip()
