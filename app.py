@@ -10,6 +10,7 @@ try:
     from models.gemini_model import GeminiModel
     from models.gpt4o_model import GPT4oModel  # Updated import
     from models.mistral_model import MistralModel
+    from models.llama_3_2_model import Llama32Model
     
 except ImportError as e:
     st.error(f"Error importing models: {e}")
@@ -46,6 +47,11 @@ gemini_model = GeminiModel(
 mistral_model = MistralModel(
     api_key=st.secrets["mistral"]["api_key"],  # Make sure to add your Mistral API key in Streamlit secrets
     base_url="https://api.aimlapi.com"
+)
+
+llama_3_2_model = Llama32Model(
+    api_key=st.secrets["together_llama3.2"]["api_key"],
+    base_url="https://api.aimlapi.com/v1"
 )
 
 
@@ -127,7 +133,7 @@ compare_mode = st.sidebar.checkbox("Compare with Other Models", key="compare_mod
 
 # If compare_mode is enabled, show additional model selection
 if compare_mode:
-    comparison_models = ["GeminiModel", "gpt4o", "mistral"]  
+    comparison_models = ["GeminiModel", "gpt4o", "mistral","llama-3-2"]  
     selected_compare_model = st.sidebar.selectbox(
         "Select Model to Compare:", 
         options=comparison_models,
@@ -148,8 +154,10 @@ def get_model_instance(model_name):
         return gemini_model  
     elif model_name == "gpt4o":
         return gpt4o_model
-    elif model_name == "mistral":  # Add this line
+    elif model_name == "mistral":  
         return mistral_model
+    elif model_name == "llama-3-2":  
+        return llama_3_2_model  
     else:
         return o1_preview_model  # Default fallback
 
