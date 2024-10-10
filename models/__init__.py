@@ -6,3 +6,4 @@ from .llama import LlamaModel
 from .gemini_model import GeminiModel
 from .gpt4o_model import GPT4oModel
 from .mistral_model import MistralModel 
+from .llama_3_2_model import Llama32Model
