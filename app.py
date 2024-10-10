@@ -7,7 +7,7 @@ try:
     from models.o1_preview import O1PreviewModel
     from models.o1_mini import O1MiniModel
     from models.llama import LlamaModel
-    from models.deepseek_coder_instruct import DeepseekCoderInstructModel
+    from models.gemini_model import GeminiModel
     from models.gpt4o_model import GPT4oModel  # Updated import
 except ImportError as e:
     st.error(f"Error importing models: {e}")
@@ -36,9 +36,8 @@ o1_mini_model = O1MiniModel(
     base_url="https://api.aimlapi.com"
 )
 
-# Initialize the comparison models
-deepseek_model = DeepseekCoderInstructModel(
-    api_key=st.secrets["deepseek"]["api_key"],
+gemini_model = GeminiModel(
+    api_key=st.secrets["gemini"]["api_key"],
     base_url="https://api.aimlapi.com"
 )
 
@@ -122,7 +121,7 @@ compare_mode = st.sidebar.checkbox("Compare with Other Models", key="compare_mod
 
 # If compare_mode is enabled, show additional model selection
 if compare_mode:
-    comparison_models = ["deepseek-coder-instruct", "gpt4o"]
+    comparison_models = ["gemini-1.5-pro", "gpt4o"]
     selected_compare_model = st.sidebar.selectbox(
         "Select Model to Compare:", 
         options=comparison_models,
@@ -139,8 +138,8 @@ def get_model_instance(model_name):
         return o1_preview_model
     elif model_name == "o1-mini":
         return o1_mini_model
-    elif model_name == "deepseek-coder-instruct":
-        return deepseek_model
+    elif model_name == "gemini-1.5-pro":  
+        return gemini_model  
     elif model_name == "gpt4o":
         return gpt4o_model
     else:
