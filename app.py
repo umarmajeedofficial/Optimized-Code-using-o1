@@ -1,4 +1,3 @@
-app.py 
 import streamlit as st  # Import Streamlit library
 import time  # Import time for delays in animations
 
@@ -8,8 +7,11 @@ try:
     from models.o1_preview import O1PreviewModel
     from models.o1_mini import O1MiniModel
     from models.llama import LlamaModel
-    from models.deepseek_coder_instruct import DeepseekCoderInstructModel
+    from models.gemini_model import GeminiModel
     from models.gpt4o_model import GPT4oModel  # Updated import
+    from models.mistral_model import MistralModel
+    from models.llama_3_2_model import Llama32Model
+    
 except ImportError as e:
     st.error(f"Error importing models: {e}")
     st.stop()
@@ -37,12 +39,20 @@ o1_mini_model = O1MiniModel(
     base_url="https://api.aimlapi.com"
 )
 
-# Initialize the comparison models
-deepseek_model = DeepseekCoderInstructModel(
-    api_key=st.secrets["deepseek"]["api_key"],
+gemini_model = GeminiModel(
+    api_key=st.secrets["gemini"]["api_key"],
     base_url="https://api.aimlapi.com"
 )
 
+mistral_model = MistralModel(
+    api_key=st.secrets["mistral"]["api_key"],  # Make sure to add your Mistral API key in Streamlit secrets
+    base_url="https://api.aimlapi.com"
+)
+
+llama_3_2_model = Llama32Model(
+    api_key=st.secrets["mistral"]["api_key"],
+    base_url="https://api.aimlapi.com/v1"
+)
 
 
 # Initialize Streamlit session state for user input and model selection
@@ -123,7 +133,7 @@ compare_mode = st.sidebar.checkbox("Compare with Other Models", key="compare_mod
 
 # If compare_mode is enabled, show additional model selection
 if compare_mode:
-    comparison_models = ["deepseek-coder-instruct", "gpt4o"]
+    comparison_models = ["GeminiModel", "gpt4o", "mistral","llama-3-2"]  
     selected_compare_model = st.sidebar.selectbox(
         "Select Model to Compare:", 
         options=comparison_models,
@@ -140,10 +150,14 @@ def get_model_instance(model_name):
         return o1_preview_model
     elif model_name == "o1-mini":
         return o1_mini_model
-    elif model_name == "deepseek-coder-instruct":
-        return deepseek_model
+    elif model_name == "gemini-1.5-pro":  
+        return gemini_model  
     elif model_name == "gpt4o":
         return gpt4o_model
+    elif model_name == "mistral":  
+        return mistral_model
+    elif model_name == "llama-3-2":  
+        return llama_3_2_model  
     else:
         return o1_preview_model  # Default fallback
 
@@ -261,112 +275,3 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-
-
-
-
-/models/__init__.py
-# models/__init__.py
-
-from .o1_preview import O1PreviewModel
-from .o1_mini import O1MiniModel
-from .llama import LlamaModel
-from .gemini_model import GeminiModel
-from .gpt4o_model import GPT4oModel
-
-
-
-
-
-/models/gpt4o_model.py
-
-# models/gpt4o_model.py
-
-from openai import OpenAI
-
-class GPT4oModel:
-    def __init__(self, api_key, base_url="https://api.aimlapi.com"):
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
-
-    def generate_code(self, instruction):
-        response = self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "As a highly skilled software engineer, please analyze the following question thoroughly and provide optimized code for the problem & Make sure to give only code"
-                },
-                {
-                    "role": "user",
-                    "content": instruction
-                },
-            ],
-            max_tokens=10000,
-        )
-        return response.choices[0].message.content.strip()
-
-    def explain_code(self, instruction):
-        response = self.client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are an AI assistant who knows everything."
-                },
-                {
-                    "role": "user",
-                    "content": instruction
-                }
-            ],
-            max_tokens=10000,
-        )
-        return response.choices[0].message.content.strip()
-
-
-
-
-
-
-
-
-here is the code and i want a additional model to add in the comapresion list 
-
-
-131K
-0.000063
-0.000063
-3B
-Chat
-Llama 3.2 3B Instruct Turbo
-Llama 3.2 3B Instruct Turbo: Meta's efficient multilingual language model for diverse NLP tasks, balancing performance and computational requirements.
-Try it now
-
-import os
-from openai import OpenAI
-
-client = OpenAI(
-    api_key="<YOUR_API_KEY>",
-    base_url="https://api.aimlapi.com",
-)
-
-response = client.chat.completions.create(
-    model="meta-llama/Llama-3.2-3B-Instruct-Turbo",
-    messages=[
-        {
-            "role": "system",
-            "content": "You are an AI assistant who knows everything.",
-        },
-        {
-            "role": "user",
-            "content": "Tell me, why is the sky blue?"
-        },
-    ],
-)
-
-message = response.choices[0].message.content
-print(f"Assistant: {message}")
-
-
-
-tell me how to add this model in my code as an additional model in the model comparision list
