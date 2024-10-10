@@ -111,11 +111,6 @@ welcome_messages = [
     "Feel free to ask any coding questions!",
     "I'm here to help with your programming needs.",
     "How may I support you today?",
-    "Welcome, how can I assist you?",
-    "What can I help with?",
-    "Feel free to ask any coding questions!",
-    "I'm here to help with your programming needs.",
-    "How may I support you today?",
 ]
 
 # Streamlit app setup
@@ -142,7 +137,7 @@ compare_mode = st.sidebar.checkbox("Compare with Other Models", key="compare_mod
 
 # If compare_mode is enabled, show additional model selection
 if compare_mode:
-    comparison_models = ["GeminiModel", "gpt4o", "mistral", "llama-3-2"]  
+    comparison_models = ["GeminiModel", "gpt4o", "mistral","llama-3-2"]  
     selected_compare_model = st.sidebar.selectbox(
         "Select Model to Compare:", 
         options=comparison_models,
@@ -158,7 +153,7 @@ def get_model_instance(model_name):
         return o1_preview_model
     elif model_name == "o1-mini":
         return o1_mini_model
-    elif model_name == "GeminiModel":  
+    elif model_name == "gemini-1.5-pro":  
         return gemini_model  
     elif model_name == "gpt4o":
         return gpt4o_model
@@ -266,17 +261,9 @@ with st.container():
                     st.markdown("**Code:**")
                     st.code(model_info.get("code", "No code generated."), language=language.lower())
                     st.markdown("**Explanation:**")
-                    
-                    # Wrap the explanation in a container with a unique class for styling
-                    explanation = model_info.get("explanation", "No explanation provided.")
-                    explanation_id = f"explanation_{idx}"
-                    st.markdown(f"""
-                        <div class="explanation-box" id="{explanation_id}">
-                            {explanation}
-                        </div>
-                    """, unsafe_allow_html=True)
+                    st.text_area("", value=model_info.get("explanation", "No explanation provided."), height=200, disabled=True)
     
-    # Custom CSS to enhance the UI and style explanation boxes
+    # Custom CSS to enhance the UI
     st.markdown("""
     <style>
         .streamlit-expanderHeader {
@@ -302,37 +289,11 @@ with st.container():
             padding: 10px;
             margin-bottom: 10px;
         }
-        /* Explanation Box Styling */
-        .explanation-box {
-            background-color: #F9F9F9; /* Light white background */
-            color: #333333; /* Dark black text */
-            padding: 15px;
-            border-radius: 5px;
-            border: 1px solid #E0E0E0;
-            font-size: 14px;
-            overflow: auto;
-            max-height: 300px;
-            white-space: pre-wrap; /* Preserve formatting */
-        }
-        /* Scrollbar Styling for Explanation Boxes */
-        .explanation-box::-webkit-scrollbar {
-            width: 8px;
-        }
-        .explanation-box::-webkit-scrollbar-track {
-            background: #f1f1f1; 
-        }
-        .explanation-box::-webkit-scrollbar-thumb {
-            background: #888; 
-            border-radius: 4px;
-        }
-        .explanation-box::-webkit-scrollbar-thumb:hover {
-            background: #555; 
-        }
     </style>
     """, unsafe_allow_html=True)
 
 # Display complexity analysis in the sidebar
-if st.session_state.user_question and analysis_results:
+if st.session_state.user_question:
     st.sidebar.markdown("## Complexity Analysis")
 
     for model_key, complexities in analysis_results.items():
@@ -344,5 +305,4 @@ if st.session_state.user_question and analysis_results:
             st.sidebar.markdown(f"- **Space Complexity:** {complexities['space_complexity']}")
 
     # Display the complexity graph
-    if complexity_graph:
-        st.sidebar.plotly_chart(complexity_graph, use_container_width=True)
+    st.sidebar.plotly_chart(complexity_graph, use_container_width=True)
