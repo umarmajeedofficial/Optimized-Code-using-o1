@@ -15,7 +15,7 @@ class GeminiModel:
                     "content": instruction
                 },
             ],
-            max_tokens=1000,
+            max_tokens=2000,
         )
         return response.choices[0].message.content.strip()
 
@@ -28,6 +28,6 @@ class GeminiModel:
                     "content": instruction
                 }
             ],
-            max_tokens=1000,
+            max_tokens=2000,
         )
         return response.choices[0].message.content.strip()
