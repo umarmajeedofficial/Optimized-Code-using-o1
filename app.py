@@ -1,10 +1,17 @@
 import streamlit as st
 from together import Together
 from openai import OpenAI
+import time  # Added import for time
 
 # Initialize the clients for the models with API keys from Streamlit secrets
-together_client = Together(base_url="https://api.aimlapi.com/v1", api_key=st.secrets["together"]["api_key"])
-openai_client = OpenAI(api_key=st.secrets["openai"]["api_key"], base_url="https://api.aimlapi.com")
+together_client = Together(
+    base_url="https://api.aimlapi.com/v1",
+    api_key=st.secrets["together"]["api_key"]
+)
+openai_client = OpenAI(
+    api_key=st.secrets["openai"]["api_key"],
+    base_url="https://api.aimlapi.com"
+)
 
 def generate_code(user_question, language):
     # Step 1: Use Llama model to get the processed question
@@ -21,7 +28,7 @@ def generate_code(user_question, language):
                 ],
             }
         ],
-        max_tokens=10000,
+        max_tokens=1000,  # Adjusted max_tokens for efficiency
     )
     
     llama_response = response.choices[0].message.content.strip()
@@ -43,7 +50,7 @@ def generate_code(user_question, language):
                 "content": instruction
             },
         ],
-        max_tokens=10000,
+        max_tokens=1000,  # Adjusted max_tokens for efficiency
     )
 
     code = openai_response.choices[0].message.content.strip()
@@ -64,11 +71,18 @@ def explain_code(code):
                 "content": instruction
             }
         ],
-        max_tokens=10000,
+        max_tokens=1000,  # Adjusted max_tokens for efficiency
     )
 
     explanation = openai_response.choices[0].message.content.strip()
     return explanation
+
+# Define welcome messages
+welcome_messages = [
+    "Welcome to the Optimized Code Generator!",
+    "Enter your question and select a programming language to get started.",
+    "Our AI will generate optimized code and provide a detailed explanation."
+]
 
 # Dropdown menu for programming languages
 languages = ["Python", "Java", "C++", "JavaScript", "Go", "Ruby", "Swift"]
@@ -81,17 +95,8 @@ st.sidebar.title("Input Section")
 
 # Sidebar inputs
 language = st.sidebar.selectbox("Select Programming Language:", options=languages, index=0)
-#explanation_output = st.sidebar.text_area("Code Explanation:", height=200, value="", placeholder="Code explanation will appear here...", disabled=True)
 
 # Main area for generated code and question input
-st.subheader("Generated Code:")
-code_container = st.empty()  # Placeholder for generated code
-
-# Use a container to allow scrolling
-
-
-
-# Main area for the welcome message and generated code
 st.subheader("Welcome to the Code Optimizer")
 welcome_container = st.empty()  # Placeholder for the welcome message
 
@@ -100,32 +105,51 @@ for message in welcome_messages:
     welcome_container.markdown(f"<h4 style='color: #4CAF50;'>{message}</h4>", unsafe_allow_html=True)
     time.sleep(1.5)  # Wait before displaying the next message
 
+# If you have a selected_model in session_state, ensure it's defined
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = "Default Model"  # Replace with your logic if needed
+
 # Display selected model separately
 model_response_container = st.empty()
-model_response_container.markdown(f"<h5 style='color: #4CAF50;'>Selected Model: {st.session_state.selected_model}</h5>", unsafe_allow_html=True)
+model_response_container.markdown(
+    f"<h5 style='color: #4CAF50;'>Selected Model: {st.session_state.selected_model}</h5>",
+    unsafe_allow_html=True
+)
 
 # Create placeholders for the generated code and comparison
 code_container = st.empty()
 compare_code_container = st.empty()
 
-
-
-
 with st.container():
     # Create a placeholder for the input field at the bottom
-    user_question = st.text_area("Enter your question:", placeholder="Type your question here...", height=150)
+    user_question = st.text_area(
+        "Enter your question:",
+        placeholder="Type your question here...",
+        height=150
+    )
     
     # Submit button at the bottom of the main content
     if st.button("Submit"):
-        with st.spinner("Thinking..."):
-            code = generate_code(user_question, language)
-            explanation = explain_code(code)  # Get explanation using O1 model
-            
-            # Display the generated code
-            code_container.code(code, language=language.lower())
-            
-            # Set the explanation output in the sidebar
-            st.sidebar.text_area("Code Explanation:", value=explanation, height=200, disabled=True)
+        if user_question.strip() == "":
+            st.sidebar.error("Please enter a question to proceed.")
+        else:
+            with st.spinner("Thinking..."):
+                try:
+                    code = generate_code(user_question, language)
+                    explanation = explain_code(code)  # Get explanation using O1 model
+                    
+                    # Display the generated code
+                    code_container.code(code, language=language.lower())
+                    
+                    # Set the explanation output in the sidebar
+                    st.sidebar.text_area(
+                        "Code Explanation:",
+                        value=explanation,
+                        height=200,
+                        disabled=True
+                    )
+                except Exception as e:
+                    st.error(f"An error occurred: {e}")
 
 # Custom CSS to enhance the UI
 st.markdown("""
